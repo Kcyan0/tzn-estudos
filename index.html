@@ -68,11 +68,13 @@
 
   nav.modules{display:flex;flex-direction:column;gap:4px;}
   @media (max-width:900px){ nav.modules{flex-direction:row;flex-wrap:wrap;} }
-  .mod-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--ink-dim);text-align:left;cursor:pointer;font-size:13.5px;font-family:var(--font-display);}
+  .mod-btn{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 12px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--ink-dim);cursor:pointer;font-size:13.5px;font-family:var(--font-display);}
   .mod-btn .n{width:20px;height:20px;border-radius:6px;background:var(--surface-2);color:var(--ink-dim);display:flex;align-items:center;justify-content:center;font-size:11px;flex:none;font-family:var(--font-mono);}
+  .mod-btn .mod-label{flex:1;text-align:left;background:none;border:none;color:inherit;font:inherit;cursor:pointer;padding:4px 0;}
   .mod-btn:hover{background:var(--surface-2);color:var(--ink);}
   .mod-btn.active{background:var(--brand-soft);color:var(--brand);}
   .mod-btn.active .n{background:var(--brand);color:var(--brand-ink);}
+  .mod-btn .icon-btn{flex:none;}
 
   .add-btn{margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid var(--border-strong);background:var(--surface);color:var(--ink);cursor:pointer;font-family:var(--font-display);font-size:12.5px;}
   .add-btn:hover{border-color:var(--brand);color:var(--brand);}
@@ -266,15 +268,17 @@
 <!-- ================= MODULE MODAL ================= -->
 <div class="overlay" id="moduleOverlay">
   <div class="modal narrow">
-    <h2>Novo módulo</h2>
+    <h2 id="moduleModalTitle">Novo módulo</h2>
     <p class="sub">Um módulo vira uma nova aba na barra lateral (ex: Pós-Venda, Renovação…).</p>
     <form id="moduleForm">
+      <input type="hidden" id="m-id">
       <div class="field"><label>Título</label><input id="m-titulo" required></div>
       <div class="field"><label>Descrição</label><textarea id="m-descricao" placeholder="Texto de introdução do módulo"></textarea></div>
       <div class="modal-actions">
+        <button type="button" class="btn" id="deleteModuleBtn" style="display:none;color:var(--ember);border-color:var(--ember-soft);">Excluir</button>
         <div style="display:flex;gap:10px;margin-left:auto;">
           <button type="button" class="btn ghost" id="moduleCancelBtn">Cancelar</button>
-          <button type="submit" class="btn primary">Criar módulo</button>
+          <button type="submit" class="btn primary" id="moduleSaveBtn">Criar módulo</button>
         </div>
       </div>
     </form>
@@ -284,9 +288,10 @@
 <!-- ================= CATEGORY MODAL ================= -->
 <div class="overlay" id="groupOverlay">
   <div class="modal narrow">
-    <h2>Nova categoria</h2>
+    <h2 id="groupModalTitle">Nova categoria</h2>
     <p class="sub">Uma categoria agrupa cards dentro de um módulo.</p>
     <form id="groupForm">
+      <input type="hidden" id="g-id">
       <div class="field"><label>Módulo</label><select id="g-modulo"></select></div>
       <div class="field"><label>Título</label><input id="g-titulo" required></div>
       <div class="field"><label>Descrição</label><textarea id="g-descricao"></textarea></div>
@@ -300,9 +305,10 @@
         </div>
       </div>
       <div class="modal-actions">
+        <button type="button" class="btn" id="deleteGroupBtn" style="display:none;color:var(--ember);border-color:var(--ember-soft);">Excluir</button>
         <div style="display:flex;gap:10px;margin-left:auto;">
           <button type="button" class="btn ghost" id="groupCancelBtn">Cancelar</button>
-          <button type="submit" class="btn primary">Criar categoria</button>
+          <button type="submit" class="btn primary" id="groupSaveBtn">Criar categoria</button>
         </div>
       </div>
     </form>
@@ -369,9 +375,15 @@ function renderSidebar(){
   const nav = document.getElementById('modulesNav');
   nav.innerHTML = '';
   state.modules.forEach((mod, i) => {
-    const b = el('button', 'mod-btn' + (mod.id === currentModule ? ' active' : ''));
-    b.innerHTML = `<span class="n">${i+1}</span> ${escapeHtml(mod.titulo.split(' — ')[0].split(' via ')[0])}`;
-    b.addEventListener('click', () => { currentModule = mod.id; document.getElementById('searchInput').value=''; renderSidebar(); renderMain(); runSearch(''); });
+    const b = el('div', 'mod-btn' + (mod.id === currentModule ? ' active' : ''));
+    const label = el('button', 'mod-label', `<span class="n">${i+1}</span> ${escapeHtml(mod.titulo.split(' — ')[0].split(' via ')[0])}`);
+    label.style.display = 'flex'; label.style.alignItems = 'center'; label.style.gap = '10px';
+    label.addEventListener('click', () => { currentModule = mod.id; document.getElementById('searchInput').value=''; renderSidebar(); renderMain(); runSearch(''); });
+    const editBtn = el('button','icon-btn','✎');
+    editBtn.title = 'Editar módulo';
+    editBtn.addEventListener('click', (e) => { e.stopPropagation(); openModuleModal(mod); });
+    b.appendChild(label);
+    b.appendChild(editBtn);
     nav.appendChild(b);
   });
 }
@@ -414,6 +426,10 @@ function renderGroupHead(group, cardCount){
   const head = el('div','group-head');
   const left = el('div','group-head-left');
   left.innerHTML = `<h2>${escapeHtml(group.titulo)}</h2><span class="count">${cardCount}</span>`;
+  const editGroupBtn = el('button','icon-btn','✎');
+  editGroupBtn.title = 'Editar categoria';
+  editGroupBtn.addEventListener('click', () => openGroupModal(group.module_id, group));
+  left.appendChild(editGroupBtn);
   head.appendChild(left);
   const addBtn = el('button','group-add','+ Adicionar');
   addBtn.addEventListener('click', () => openCardModal(null, { moduleId: group.module_id, groupId: group.id }));
@@ -661,30 +677,62 @@ function doDeleteCard(card){
 
 /* ---------- module modal ---------- */
 const moduleOverlay = document.getElementById('moduleOverlay');
-document.getElementById('newModuleBtn').addEventListener('click', () => {
+let editingModuleId = null;
+function openModuleModal(mod){
   document.getElementById('moduleForm').reset();
+  editingModuleId = mod ? mod.id : null;
+  document.getElementById('moduleModalTitle').textContent = mod ? 'Editar módulo' : 'Novo módulo';
+  document.getElementById('moduleSaveBtn').textContent = mod ? 'Salvar' : 'Criar módulo';
+  document.getElementById('deleteModuleBtn').style.display = mod ? '' : 'none';
+  document.getElementById('m-titulo').value = mod ? mod.titulo : '';
+  document.getElementById('m-descricao').value = mod ? (mod.descricao||'') : '';
   moduleOverlay.classList.add('open');
-});
+}
+document.getElementById('newModuleBtn').addEventListener('click', () => openModuleModal(null));
 document.getElementById('moduleCancelBtn').addEventListener('click', () => moduleOverlay.classList.remove('open'));
 moduleOverlay.addEventListener('click', e => { if(e.target === moduleOverlay) moduleOverlay.classList.remove('open'); });
 document.getElementById('moduleForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const titulo = document.getElementById('m-titulo').value.trim();
   const descricao = document.getElementById('m-descricao').value.trim();
-  const id = slugify(titulo);
-  const maxOrdem = Math.max(0, ...state.modules.map(m=>m.ordem||0));
-  await sb.from('modules').insert({ id, titulo, descricao, ordem: maxOrdem+1 });
-  currentModule = id;
+  if(editingModuleId){
+    await sb.from('modules').update({ titulo, descricao }).eq('id', editingModuleId);
+    toast('Módulo atualizado!');
+  } else {
+    const id = slugify(titulo);
+    const maxOrdem = Math.max(0, ...state.modules.map(m=>m.ordem||0));
+    await sb.from('modules').insert({ id, titulo, descricao, ordem: maxOrdem+1 });
+    currentModule = id;
+    toast('Módulo criado!');
+  }
   moduleOverlay.classList.remove('open');
-  toast('Módulo criado!');
+  loadData();
+});
+document.getElementById('deleteModuleBtn').addEventListener('click', async () => {
+  if(!editingModuleId) return;
+  const mod = state.modules.find(m => m.id === editingModuleId);
+  if(!confirm(`Excluir o módulo "${mod?.titulo}" e TODAS as categorias e cards dentro dele? Essa ação não pode ser desfeita.`)) return;
+  await sb.from('modules').delete().eq('id', editingModuleId);
+  if(currentModule === editingModuleId) currentModule = null;
+  moduleOverlay.classList.remove('open');
+  toast('Módulo excluído');
   loadData();
 });
 
 /* ---------- group modal ---------- */
 const groupOverlay = document.getElementById('groupOverlay');
-function openGroupModal(moduleId){
+let editingGroupId = null;
+function openGroupModal(moduleId, group){
   document.getElementById('groupForm').reset();
+  editingGroupId = group ? group.id : null;
+  document.getElementById('groupModalTitle').textContent = group ? 'Editar categoria' : 'Nova categoria';
+  document.getElementById('groupSaveBtn').textContent = group ? 'Salvar' : 'Criar categoria';
+  document.getElementById('deleteGroupBtn').style.display = group ? '' : 'none';
   document.getElementById('g-modulo').value = moduleId;
+  document.getElementById('g-titulo').value = group ? group.titulo : '';
+  document.getElementById('g-descricao').value = group ? (group.descricao||'') : '';
+  const layoutRadio = document.querySelector(`input[name="layout"][value="${group ? group.layout : 'grid'}"]`);
+  if(layoutRadio) layoutRadio.checked = true;
   groupOverlay.classList.add('open');
 }
 document.getElementById('groupCancelBtn').addEventListener('click', () => groupOverlay.classList.remove('open'));
@@ -695,11 +743,25 @@ document.getElementById('groupForm').addEventListener('submit', async (e) => {
   const titulo = document.getElementById('g-titulo').value.trim();
   const descricao = document.getElementById('g-descricao').value.trim();
   const layout = document.querySelector('input[name="layout"]:checked').value;
-  const id = 'g-' + slugify(titulo).slice(2);
-  const maxOrdem = Math.max(0, ...groupsOf(moduleId).map(g=>g.ordem||0));
-  await sb.from('groups').insert({ id, module_id: moduleId, titulo, descricao, layout, ordem: maxOrdem+1 });
+  if(editingGroupId){
+    await sb.from('groups').update({ module_id: moduleId, titulo, descricao, layout }).eq('id', editingGroupId);
+    toast('Categoria atualizada!');
+  } else {
+    const id = 'g-' + slugify(titulo).slice(2);
+    const maxOrdem = Math.max(0, ...groupsOf(moduleId).map(g=>g.ordem||0));
+    await sb.from('groups').insert({ id, module_id: moduleId, titulo, descricao, layout, ordem: maxOrdem+1 });
+    toast('Categoria criada!');
+  }
   groupOverlay.classList.remove('open');
-  toast('Categoria criada!');
+  loadData();
+});
+document.getElementById('deleteGroupBtn').addEventListener('click', async () => {
+  if(!editingGroupId) return;
+  const group = state.groups.find(g => g.id === editingGroupId);
+  if(!confirm(`Excluir a categoria "${group?.titulo}" e todos os cards dentro dela? Essa ação não pode ser desfeita.`)) return;
+  await sb.from('groups').delete().eq('id', editingGroupId);
+  groupOverlay.classList.remove('open');
+  toast('Categoria excluída');
   loadData();
 });
 
