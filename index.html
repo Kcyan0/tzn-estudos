@@ -196,6 +196,26 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
 
   .loading{padding:60px 0;text-align:center;color:var(--ink-dim);font-family:var(--font-display);font-size:13px;}
+
+  .tool-divider{height:1px;background:var(--border);margin:6px 2px 0;}
+  .tool-btn{margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 12px;border-radius:10px;border:1px solid var(--border-strong);background:linear-gradient(155deg,var(--brand-soft),var(--ember-soft));color:var(--brand);cursor:pointer;font-family:var(--font-display);font-weight:600;font-size:12.5px;}
+  .tool-btn:hover{border-color:var(--brand);}
+  @media (max-width:900px){ .tool-divider{display:none;} }
+
+  .modal.wide{max-width:720px;}
+  .dropzone{border:1px dashed var(--border-strong);border-radius:10px;padding:22px 14px;text-align:center;font-size:13px;color:var(--ink-dim);cursor:pointer;background:var(--bg);}
+  .dropzone.drag{border-color:var(--brand);color:var(--brand);background:var(--brand-soft);}
+  .dropzone .dz-link{color:var(--brand);text-decoration:underline;}
+  .briefing-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .briefing-thumb{position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;border:1px solid var(--border);flex:none;}
+  .briefing-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .briefing-thumb button{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(20,16,10,0.65);color:#fff;font-size:11px;line-height:1;cursor:pointer;padding:0;}
+  .briefing-error{font-size:13px;color:var(--ember);background:var(--ember-soft);border-radius:8px;padding:9px 12px;margin-bottom:14px;}
+  .briefing-output{border-top:1px dashed var(--border);margin-top:20px;padding-top:16px;}
+  .briefing-output-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .briefing-output-head label{margin:0;}
+  .briefing-result{white-space:pre-wrap;font-family:var(--font-mono);font-size:13px;line-height:1.6;background:var(--surface-2);border-radius:10px;padding:16px;max-height:420px;overflow-y:auto;margin:0;}
+  .btn[disabled]{opacity:0.6;}
 </style>
 </head>
 <body>
@@ -213,6 +233,8 @@
     <nav class="modules" id="modulesNav"></nav>
     <button class="add-btn" id="newModuleBtn">+ Novo módulo</button>
     <button class="add-btn ghost" id="globalAddBtn">+ Nova entrada</button>
+    <div class="tool-divider"></div>
+    <button class="tool-btn" id="briefingToolBtn">📋 Criador de Briefing</button>
     <div class="rail-foot"><span class="status-dot"></span>Conectado ao banco ao vivo — qualquer edição aparece pra todo mundo.</div>
   </aside>
 
@@ -312,6 +334,46 @@
         </div>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ================= BRIEFING MODAL ================= -->
+<div class="overlay" id="briefingOverlay">
+  <div class="modal wide">
+    <h2>Criador de Briefing</h2>
+    <p class="sub">Solte ou cole os prints da qualificação do lead (WhatsApp, Instagram…) — a IA monta o relatório no formato padrão.</p>
+
+    <div class="field">
+      <label>Capturas de tela</label>
+      <div class="dropzone" id="briefingDropzone" tabindex="0">
+        <span>Arraste os prints aqui, cole com Ctrl+V ou <span class="dz-link">clique pra escolher</span></span>
+        <input type="file" id="briefingFileInput" accept="image/*" multiple hidden>
+      </div>
+      <div class="briefing-thumbs" id="briefingThumbs"></div>
+    </div>
+
+    <div class="field">
+      <label>Contexto adicional (opcional)</label>
+      <textarea id="briefingContext" placeholder="Algo que não apareceu no print? Nome do lead, observações do SDR…"></textarea>
+    </div>
+
+    <div class="briefing-error" id="briefingError" style="display:none;"></div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" id="briefingCancelBtn">Fechar</button>
+      <button type="button" class="btn primary" id="briefingGenerateBtn">Gerar Briefing</button>
+    </div>
+
+    <div class="briefing-output" id="briefingOutputWrap" style="display:none;">
+      <div class="briefing-output-head">
+        <label>Briefing gerado</label>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="copy-btn" id="briefingCopyBtn">Copiar</button>
+          <button type="button" class="add-row-btn" id="briefingResetBtn">Novo briefing</button>
+        </div>
+      </div>
+      <pre class="briefing-result" id="briefingResult"></pre>
+    </div>
   </div>
 </div>
 
@@ -764,6 +826,115 @@ document.getElementById('deleteGroupBtn').addEventListener('click', async () => 
   toast('Categoria excluída');
   loadData();
 });
+
+/* ---------- briefing tool ---------- */
+// Se algum dia vocês ativarem BRIEFING_ACCESS_CODE no Vercel (ver README),
+// preencha o mesmo valor aqui pra continuar funcionando pro time.
+const BRIEFING_ACCESS_CODE = "";
+
+const briefingOverlay = document.getElementById('briefingOverlay');
+const briefingDropzone = document.getElementById('briefingDropzone');
+const briefingFileInput = document.getElementById('briefingFileInput');
+const briefingThumbs = document.getElementById('briefingThumbs');
+const briefingContext = document.getElementById('briefingContext');
+const briefingError = document.getElementById('briefingError');
+const briefingGenerateBtn = document.getElementById('briefingGenerateBtn');
+const briefingOutputWrap = document.getElementById('briefingOutputWrap');
+const briefingResult = document.getElementById('briefingResult');
+let briefingImages = []; // { media_type, data (base64 sem prefixo), previewUrl }
+
+function resetBriefingTool(){
+  briefingImages = [];
+  briefingContext.value = '';
+  briefingError.style.display = 'none';
+  briefingOutputWrap.style.display = 'none';
+  briefingResult.textContent = '';
+  briefingFileInput.value = '';
+  renderBriefingThumbs();
+}
+
+function openBriefingModal(){
+  resetBriefingTool();
+  briefingOverlay.classList.add('open');
+}
+function closeBriefingModal(){ briefingOverlay.classList.remove('open'); }
+
+document.getElementById('briefingToolBtn').addEventListener('click', openBriefingModal);
+document.getElementById('briefingCancelBtn').addEventListener('click', closeBriefingModal);
+briefingOverlay.addEventListener('click', e => { if(e.target === briefingOverlay) closeBriefingModal(); });
+
+function renderBriefingThumbs(){
+  briefingThumbs.innerHTML = '';
+  briefingImages.forEach((img, i) => {
+    const t = el('div','briefing-thumb');
+    t.innerHTML = `<img src="${img.previewUrl}" alt=""><button type="button" title="Remover">✕</button>`;
+    t.querySelector('button').addEventListener('click', () => { briefingImages.splice(i,1); renderBriefingThumbs(); });
+    briefingThumbs.appendChild(t);
+  });
+}
+
+function addBriefingFiles(files){
+  [...files].forEach(file => {
+    if(!file.type || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      const base64 = dataUrl.split(',')[1];
+      briefingImages.push({ media_type: file.type, data: base64, previewUrl: dataUrl });
+      renderBriefingThumbs();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+briefingDropzone.addEventListener('click', () => briefingFileInput.click());
+briefingDropzone.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); briefingFileInput.click(); } });
+briefingFileInput.addEventListener('change', e => addBriefingFiles(e.target.files));
+['dragover','dragenter'].forEach(evt => briefingDropzone.addEventListener(evt, e => { e.preventDefault(); briefingDropzone.classList.add('drag'); }));
+['dragleave','drop'].forEach(evt => briefingDropzone.addEventListener(evt, e => { e.preventDefault(); briefingDropzone.classList.remove('drag'); }));
+briefingDropzone.addEventListener('drop', e => addBriefingFiles(e.dataTransfer.files));
+briefingOverlay.addEventListener('paste', e => {
+  const items = [...(e.clipboardData?.items || [])].filter(it => it.type.startsWith('image/'));
+  if(items.length){ addBriefingFiles(items.map(it => it.getAsFile())); }
+});
+
+briefingGenerateBtn.addEventListener('click', async () => {
+  briefingError.style.display = 'none';
+  if(briefingImages.length === 0){
+    briefingError.textContent = 'Adicione pelo menos um print da conversa.';
+    briefingError.style.display = '';
+    return;
+  }
+  briefingGenerateBtn.disabled = true;
+  briefingGenerateBtn.textContent = 'Gerando…';
+  try{
+    const headers = { 'Content-Type': 'application/json' };
+    if(BRIEFING_ACCESS_CODE) headers['X-Briefing-Code'] = BRIEFING_ACCESS_CODE;
+    const res = await fetch('/api/generate-briefing', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        images: briefingImages.map(i => ({ media_type: i.media_type, data: i.data })),
+        context: briefingContext.value.trim(),
+      }),
+    });
+    let payload;
+    try{ payload = await res.json(); }
+    catch{ throw new Error('O servidor não respondeu corretamente. Confira se a função /api/generate-briefing está publicada.'); }
+    if(!res.ok) throw new Error(payload.error || 'Erro ao gerar o briefing.');
+    briefingResult.textContent = payload.briefing;
+    briefingOutputWrap.style.display = '';
+  }catch(err){
+    briefingError.textContent = err.message || 'Erro ao gerar o briefing.';
+    briefingError.style.display = '';
+  }finally{
+    briefingGenerateBtn.disabled = false;
+    briefingGenerateBtn.textContent = 'Gerar Briefing';
+  }
+});
+
+document.getElementById('briefingCopyBtn').addEventListener('click', (e) => copyText(briefingResult.textContent, e.currentTarget));
+document.getElementById('briefingResetBtn').addEventListener('click', resetBriefingTool);
 
 loadData();
 </script>

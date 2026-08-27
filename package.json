@@ -1,0 +1,9 @@
+{
+  "name": "tzn-legacy-playbook",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Playbook interativo do time comercial + gerador de briefing por IA",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0"
+  }
+}
