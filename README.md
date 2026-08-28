@@ -25,7 +25,7 @@ Adicionar módulo/categoria/card pelo próprio site já grava nessas tabelas —
 Ferramenta separada dos módulos do playbook (botão "📋 Criador de Briefing" na barra lateral). O SDR sobe (ou cola com Ctrl+V) os prints da qualificação do lead, opcionalmente adiciona contexto, e a IA devolve o relatório pronto no formato padrão do time — só gera e copia, não fica salvo em lugar nenhum.
 
 - **Frontend:** `index.html` (mesma página, sem dependências novas).
-- **Backend:** `api/generate-briefing.js`, uma função serverless da Vercel que chama a API da Anthropic (modelo `claude-opus-5`) com as imagens. Existe só pra manter a chave da API fora do navegador — o `index.html` nunca vê essa chave.
+- **Backend:** `api/generate-briefing.js`, uma função serverless da Vercel que chama a API da Anthropic (modelo `claude-sonnet-5` — bom custo/benefício pra essa tarefa) com as imagens. Existe só pra manter a chave da API fora do navegador — o `index.html` nunca vê essa chave.
 
 **Configuração necessária no Vercel** (Settings → Environment Variables do projeto):
 

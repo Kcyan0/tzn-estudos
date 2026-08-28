@@ -151,7 +151,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const response = await client.messages.create({
-      model: "claude-opus-5",
+      model: "claude-sonnet-5", // custo/benefício melhor pra essa tarefa (ler print → preencher template fixo)
       max_tokens: 1500,
       system: SYSTEM_PROMPT,
       messages: [
