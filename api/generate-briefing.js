@@ -10,13 +10,14 @@ const Anthropic = require("@anthropic-ai/sdk");
 
 const client = new Anthropic(); // lê ANTHROPIC_API_KEY do ambiente
 
-// A Vercel limita o corpo de uma Serverless Function a ~4.5MB no total.
-// Esses limites (calculados já em cima do tamanho do base64, que é uns 37%
-// maior que o arquivo original) mantêm uma folga confortável abaixo disso
-// pra dar uma mensagem de erro clara em vez de deixar a plataforma rejeitar
-// a requisição inteira com um 413 sem corpo.
-const MAX_IMAGES = 4;
-const MAX_IMAGE_B64_CHARS = 900 * 1024; // ~900KB de base64 ≈ 650KB de imagem original
+// A Vercel limita o corpo de uma Serverless Function a ~4.5MB no total —
+// passar disso derruba a requisição inteira com um 413 da plataforma, antes
+// mesmo dessa função rodar (o front-end já comprime as imagens antes de
+// enviar, então isso aqui é só uma rede de segurança). Limite calculado já
+// em cima do tamanho do base64 (~37% maior que o arquivo original), com
+// folga pro resto do JSON (contexto, chaves, etc.).
+const MAX_IMAGES = 8;
+const MAX_TOTAL_B64_CHARS = 3.8 * 1024 * 1024; // ~3.8MB de base64 somado
 const ALLOWED_MEDIA_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 
 const SYSTEM_PROMPT = `Você é um assistente do time comercial da TZN. Sua única função é ler capturas de tela de uma conversa de qualificação de lead (WhatsApp, Instagram, formulário, etc.) e transformar as informações nelas contidas em um briefing curto, no formato exato usado pelo time — sem inventar nada que não esteja implícito ou explícito nos prints.
@@ -110,15 +111,17 @@ module.exports = async function handler(req, res) {
     res.status(400).json({ error: `Envie no máximo ${MAX_IMAGES} imagens por vez.` });
     return;
   }
+  let totalChars = 0;
   for (const img of images) {
     if (!img || typeof img.data !== "string" || !ALLOWED_MEDIA_TYPES.has(img.media_type)) {
       res.status(400).json({ error: "Imagem inválida — formatos aceitos: PNG, JPEG, WEBP, GIF." });
       return;
     }
-    if (img.data.length > MAX_IMAGE_B64_CHARS) {
-      res.status(400).json({ error: "Uma das imagens é grande demais (máx. ~650KB por print — tente um print recortado, sem tela cheia)." });
-      return;
-    }
+    totalChars += img.data.length;
+  }
+  if (totalChars > MAX_TOTAL_B64_CHARS) {
+    res.status(400).json({ error: "Os prints somados ficaram grandes demais pro servidor aceitar. Remova alguns ou envie em dois lotes." });
+    return;
   }
 
   const userContent = [

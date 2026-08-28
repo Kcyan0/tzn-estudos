@@ -36,7 +36,7 @@ Ferramenta separada dos módulos do playbook (botão "📋 Criador de Briefing" 
 
 Sem `ANTHROPIC_API_KEY` configurada, o botão aparece normalmente mas gerar um briefing retorna erro.
 
-**Limites:** até 4 prints por geração, ~650KB cada (a Vercel limita o corpo de uma função serverless a ~4.5MB no total). Print recortado (só a parte da conversa) em vez de tela cheia resolve na quase totalidade dos casos.
+**Limites:** até 8 prints por geração. O navegador redimensiona e recomprime cada print antes de enviar (a Vercel limita o corpo de uma função serverless a ~4.5MB no total), então isso raramente é um problema na prática — só entra em jogo se os prints somados ainda ficarem grandes demais depois de comprimidos.
 
 **Rodando a função localmente:** `python3 -m http.server` (abaixo) serve o `index.html`, mas não executa funções serverless — pra testar o gerador de briefing de ponta a ponta em máquina local é preciso `vercel dev` (`npm i -g vercel`, depois `vercel dev` na raiz do projeto, com `ANTHROPIC_API_KEY` no `.env.local`).
 
