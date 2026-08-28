@@ -177,6 +177,8 @@ module.exports = async function handler(req, res) {
           ? "Chave da API Anthropic ausente ou inválida no servidor."
           : err instanceof Anthropic.RateLimitError
           ? "Limite de uso da API atingido — tente novamente em instantes."
+          : err instanceof Anthropic.BadRequestError
+          ? `Pedido rejeitado pela API: ${err.message}`
           : "Erro ao gerar o briefing. Tente novamente.",
     });
   }
