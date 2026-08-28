@@ -8,7 +8,17 @@
 
 const Anthropic = require("@anthropic-ai/sdk");
 
-const client = new Anthropic(); // lê ANTHROPIC_API_KEY do ambiente
+// Lê ANTHROPIC_API_KEY do ambiente. Se a chave usada for uma chave
+// "identity-linked" (vinculada à sua conta pessoal, em vez de uma chave de
+// API tradicional gerada no Console dentro de um workspace específico), a
+// API exige saber em qual workspace atuar — configure ANTHROPIC_WORKSPACE_ID
+// na Vercel nesse caso. O ideal é evitar isso usando uma chave de API comum
+// (console.anthropic.com → Settings → API Keys), que já resolve sozinha.
+const client = new Anthropic(
+  process.env.ANTHROPIC_WORKSPACE_ID
+    ? { defaultHeaders: { "anthropic-workspace-id": process.env.ANTHROPIC_WORKSPACE_ID } }
+    : undefined
+);
 
 // A Vercel limita o corpo de uma Serverless Function a ~4.5MB no total —
 // passar disso derruba a requisição inteira com um 413 da plataforma, antes

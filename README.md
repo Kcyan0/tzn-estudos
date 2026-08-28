@@ -31,7 +31,8 @@ Ferramenta separada dos módulos do playbook (botão "📋 Criador de Briefing" 
 
 | Variável | Obrigatória? | O que faz |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Sim | Chave da API da Anthropic (console.anthropic.com) usada pela função pra gerar os briefings. |
+| `ANTHROPIC_API_KEY` | Sim | Chave da API da Anthropic. **Gere em console.anthropic.com → Settings → API Keys** (uma chave normal, presa a um workspace) — não use um token pessoal de login (`ant auth login`/OAuth), que é "identity-linked" e exige a variável extra abaixo. |
+| `ANTHROPIC_WORKSPACE_ID` | Só se a chave acima for identity-linked | Some com o erro `anthropic-workspace-id is required...`? É porque a chave usada foi um token de login pessoal em vez de uma API Key comum. O jeito mais simples é trocar por uma API Key gerada no Console (aí essa variável nem precisa existir); se preferir manter a chave atual, defina aqui o ID do workspace (`wrkspc_...`, visível no Console). |
 | `BRIEFING_ACCESS_CODE` | Não | Se definida, a função só aceita pedidos que enviem esse mesmo código (o time precisaria colocar o valor na constante `BRIEFING_ACCESS_CODE` no `index.html` e republicar). Serve pra reduzir o risco de alguém fora do time gastar crédito da API caso o link do site vaze — ver seção "Segurança" abaixo. |
 
 Sem `ANTHROPIC_API_KEY` configurada, o botão aparece normalmente mas gerar um briefing retorna erro.
