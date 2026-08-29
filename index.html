@@ -203,27 +203,12 @@
   @media (max-width:900px){ .tool-divider{display:none;} }
 
   .modal.wide{max-width:720px;}
-  .apikey-box{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:18px;}
-  .apikey-box .apikey-row{display:flex;gap:8px;}
-  .apikey-box input{flex:1;}
-  .apikey-saved{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--good-soft);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:18px;font-size:13px;color:var(--good);}
-  .apikey-saved button{font-family:var(--font-mono);font-size:11.5px;border:1px solid var(--border-strong);background:var(--surface);color:var(--ink-dim);padding:5px 10px;border-radius:7px;cursor:pointer;flex:none;}
-  .apikey-saved button:hover{color:var(--brand);border-color:var(--brand);}
   .briefing-error{font-size:13px;color:var(--ember);background:var(--ember-soft);border-radius:8px;padding:9px 12px;margin-bottom:14px;white-space:pre-wrap;}
   .briefing-output{border-top:1px dashed var(--border);margin-top:20px;padding-top:18px;}
-  .briefing-output-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-  .briefing-output-head h3{font-size:18px;}
-  .stamp{display:inline-block;border:2px solid currentColor;border-radius:7px;padding:6px 14px;font-family:var(--font-display);font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;transform:rotate(-3deg);margin-bottom:16px;}
-  .stamp.quente{color:var(--ember);}
-  .stamp.morno{color:var(--brand);}
-  .stamp.frio{color:var(--cool);}
-  .briefing-section{margin-bottom:16px;}
-  .briefing-section:last-child{margin-bottom:0;}
-  .briefing-section .section-eyebrow{font-family:var(--font-display);font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-dim);margin:0 0 6px;padding-bottom:6px;border-bottom:1px solid var(--border);}
-  .briefing-section p, .briefing-section ul{margin:0;font-size:14px;line-height:1.6;color:var(--ink);}
-  .briefing-section ul{padding-left:18px;}
-  .briefing-section li{margin-bottom:3px;}
-  .briefing-result-actions{display:flex;gap:8px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--border);}
+  .briefing-output-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .briefing-output-head h3{font-size:16px;color:var(--good);}
+  .briefing-result{white-space:pre-wrap;font-family:var(--font-mono);font-size:12.5px;line-height:1.6;background:var(--surface-2);border-radius:10px;padding:14px 16px;max-height:260px;overflow-y:auto;margin:0;color:var(--ink-dim);}
+  .briefing-result-actions{display:flex;gap:8px;margin-top:14px;}
   .btn[disabled]{opacity:0.6;}
 </style>
 </head>
@@ -350,22 +335,7 @@
 <div class="overlay" id="briefingOverlay">
   <div class="modal wide">
     <h2>Criador de Briefing</h2>
-    <p class="sub">Cole as anotações do lead (texto corrido, transcrição de call, print da conversa colado como texto) — a IA monta o relatório no formato padrão. Roda direto no seu navegador, com a sua própria chave da Anthropic — nada passa pelo nosso servidor.</p>
-
-    <div class="apikey-saved" id="apikeySaved" style="display:none;">
-      <span>🔑 Chave de API salva neste navegador</span>
-      <button type="button" id="apikeyChangeBtn">Trocar</button>
-    </div>
-    <div class="apikey-box" id="apikeyBox">
-      <div class="field">
-        <label>Sua chave de API da Anthropic</label>
-        <div class="apikey-row">
-          <input type="password" id="apikeyInput" placeholder="sk-ant-api03-…" autocomplete="off">
-          <button type="button" class="btn primary" id="apikeySaveBtn" style="flex:none;">Salvar</button>
-        </div>
-        <p class="hint">Gere a sua em <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> → Settings → API Keys. Fica salva só neste navegador (nunca é enviada pra nenhum servidor nosso) — cada SDR usa a própria chave e paga o próprio uso.</p>
-      </div>
-    </div>
+    <p class="sub">Preenche nome e anotações do lead, clica em gerar — a gente copia o prompt pronto pra área de transferência e abre uma conversa nova no Claude (claude.ai). É só colar (Ctrl+V) lá e mandar. 100% grátis, usa a sua própria conta do Claude.</p>
 
     <div class="field">
       <label>Nome do lead</label>
@@ -381,21 +351,17 @@
 
     <div class="modal-actions">
       <button type="button" class="btn ghost" id="briefingCancelBtn">Fechar</button>
-      <button type="button" class="btn primary" id="briefingGenerateBtn">Gerar Briefing</button>
+      <button type="button" class="btn primary" id="briefingGenerateBtn">Gerar no Claude ↗</button>
     </div>
 
     <div class="briefing-output" id="briefingOutputWrap" style="display:none;">
       <div class="briefing-output-head">
-        <h3 id="briefingTitle"></h3>
+        <h3 id="briefingOutputTitle"></h3>
       </div>
-      <div class="stamp" id="briefingStamp"></div>
-      <div class="briefing-section"><p class="section-eyebrow">📌 Quem é</p><p id="briefingQuemE"></p></div>
-      <div class="briefing-section"><p class="section-eyebrow">🎯 Objetivo Atual</p><p id="briefingObjetivo"></p></div>
-      <div class="briefing-section"><p class="section-eyebrow">🤝 Dores / Necessidades</p><ul id="briefingDores"></ul></div>
-      <div class="briefing-section"><p class="section-eyebrow">💰 Orçamento Disponível</p><ul id="briefingOrcamento"></ul></div>
-      <div class="briefing-section"><p class="section-eyebrow">⭐ Classificação do Lead</p><p id="briefingJustificativa"></p></div>
+      <p class="hint" style="margin-bottom:12px;">Cole (Ctrl+V ou Cmd+V) na conversa que abriu e aperte enviar. Se o copiar automático não funcionar no seu navegador, copie manualmente abaixo:</p>
+      <pre class="briefing-result" id="briefingPromptPreview"></pre>
       <div class="briefing-result-actions">
-        <button type="button" class="copy-btn" id="briefingCopyBtn">Copiar relatório</button>
+        <button type="button" class="copy-btn" id="briefingCopyBtn">Copiar prompt</button>
         <button type="button" class="add-row-btn" id="briefingResetBtn">Novo briefing</button>
       </div>
     </div>
@@ -853,73 +819,51 @@ document.getElementById('deleteGroupBtn').addEventListener('click', async () => 
 });
 
 /* ---------- briefing tool ---------- */
-// Chama a API da Anthropic direto do navegador, com a chave de cada SDR
-// (salva só no localStorage desse navegador — nunca passa pelo nosso
-// servidor). Suportado oficialmente pela Anthropic pra ferramentas internas
-// com usuários de confiança: platform.claude.com/docs/en/cli-sdks-libraries/sdks/typescript
-// (seção "Browser usage" / dangerouslyAllowBrowser).
-const BRIEFING_API_KEY_STORAGE = 'tzn_briefing_anthropic_key';
-const BRIEFING_MODEL = 'claude-sonnet-5';
+// Sem servidor, sem API key, sem custo: o botão monta o prompt (instruções +
+// nome/anotações do lead), copia pra área de transferência e abre uma
+// conversa nova no claude.ai — o SDR só cola e manda. Usa a conta Claude que
+// a pessoa já tem (o plano gratuito já é suficiente pra isso).
+const BRIEFING_INSTRUCTIONS = `Você transforma anotações brutas sobre um lead comercial em um relatório de perfil estruturado para a equipe de vendas usar antes de ligar pro lead.
 
-const BRIEFING_SYSTEM_PROMPT = `Você transforma anotações brutas sobre um lead comercial em um perfil estruturado para a equipe de vendas usar antes de ligar pro lead.
+Responda com um relatório nesse formato exato (mantenha os cabeçalhos com esses emojis, nessa ordem):
 
-Responda APENAS com um objeto JSON válido, sem markdown, sem crases, sem texto antes ou depois, exatamente neste formato:
+🔵 RELATÓRIO — PERFIL [NOME]
 
-{
-  "quem_e": "texto corrido descrevendo histórico, experiência prévia e rotina/situação atual do lead",
-  "objetivo_atual": "texto corrido descrevendo o que o lead busca alcançar",
-  "dores_necessidades": ["dor ou necessidade 1", "dor ou necessidade 2"],
-  "orcamento": ["informação sobre capacidade de investimento", "o que isso significa pro perfil"],
-  "classificacao": "quente ou morno ou frio",
-  "justificativa_classificacao": "texto corrido explicando a classificação"
-}
+📌 Quem é
+[histórico, experiência prévia e rotina/situação atual do lead]
 
-Para a classificação, cruze motivação demonstrada, disponibilidade de tempo, consistência do orçamento mencionado e urgência de mudança de vida ou situação. Leads com boa pontuação nesses quatro pontos são "quente"; sinais mistos são "morno"; pouca motivação, tempo ou orçamento incerto são "frio".
+🎯 Objetivo Atual
+[o que o lead busca alcançar]
 
-Baseie-se apenas nas informações fornecidas. Se um dado não estiver explícito, infira com razoabilidade a partir do contexto, mas não invente números específicos que não foram mencionados.
+🤝 Dores / Necessidades
+- [dor ou necessidade 1]
+- [dor ou necessidade 2]
 
-Referência de tom e nível de detalhe esperado (não copie o conteúdo, é só estilo):
-"Já estudou marketing digital e tráfego pago (inclusive curso presencial), tentou aplicar algumas estratégias, mas ainda não conseguiu resultados consistentes. Atualmente trabalha durante o dia em uma contabilidade e usa o período da noite para estudar e tentar se desenvolver no digital. Não é leigo, mas ainda não encontrou um caminho validado para executar."`;
+💰 Orçamento Disponível
+- [informação sobre capacidade de investimento]
+- [o que isso significa pro perfil]
+
+⭐ Classificação do Lead
+[emoji 🟢 pra quente / 🟡 pra morno / 🔴 pra frio] LEAD [QUENTE/MORNO/FRIO]
+[justificativa cruzando motivação demonstrada, disponibilidade de tempo, consistência do orçamento mencionado e urgência de mudança de vida ou situação — boa pontuação nos quatro é "quente", sinais mistos é "morno", pouca motivação/tempo/orçamento incerto é "frio"]
+
+Baseie-se apenas nas informações fornecidas abaixo. Se um dado não estiver explícito, infira com razoabilidade a partir do contexto, mas não invente números específicos que não foram mencionados. Responda só com o relatório, sem comentário antes ou depois.`;
 
 const briefingOverlay = document.getElementById('briefingOverlay');
-const apikeyBox = document.getElementById('apikeyBox');
-const apikeySaved = document.getElementById('apikeySaved');
-const apikeyInput = document.getElementById('apikeyInput');
 const briefingNome = document.getElementById('briefingNome');
 const briefingNotas = document.getElementById('briefingNotas');
 const briefingError = document.getElementById('briefingError');
 const briefingGenerateBtn = document.getElementById('briefingGenerateBtn');
 const briefingOutputWrap = document.getElementById('briefingOutputWrap');
-let lastReportText = '';
-
-function getBriefingApiKey(){ return localStorage.getItem(BRIEFING_API_KEY_STORAGE) || ''; }
-function setBriefingApiKey(key){ localStorage.setItem(BRIEFING_API_KEY_STORAGE, key); }
-function clearBriefingApiKey(){ localStorage.removeItem(BRIEFING_API_KEY_STORAGE); }
-
-function renderApiKeyState(){
-  const hasKey = !!getBriefingApiKey();
-  apikeyBox.style.display = hasKey ? 'none' : '';
-  apikeySaved.style.display = hasKey ? '' : 'none';
-}
-document.getElementById('apikeySaveBtn').addEventListener('click', () => {
-  const key = apikeyInput.value.trim();
-  if(!key){ return; }
-  setBriefingApiKey(key);
-  apikeyInput.value = '';
-  renderApiKeyState();
-});
-document.getElementById('apikeyChangeBtn').addEventListener('click', () => {
-  clearBriefingApiKey();
-  renderApiKeyState();
-});
+const briefingPromptPreview = document.getElementById('briefingPromptPreview');
+let lastBriefingPrompt = '';
 
 function resetBriefingTool(){
   briefingNome.value = '';
   briefingNotas.value = '';
   briefingError.style.display = 'none';
   briefingOutputWrap.style.display = 'none';
-  lastReportText = '';
-  renderApiKeyState();
+  lastBriefingPrompt = '';
 }
 
 function openBriefingModal(){
@@ -932,115 +876,41 @@ document.getElementById('briefingToolBtn').addEventListener('click', openBriefin
 document.getElementById('briefingCancelBtn').addEventListener('click', closeBriefingModal);
 briefingOverlay.addEventListener('click', e => { if(e.target === briefingOverlay) closeBriefingModal(); });
 
-function renderBriefingReport(data, nome){
-  const classe = (data.classificacao || '').toLowerCase().trim();
-  document.getElementById('briefingTitle').textContent = `🔵 Perfil — ${nome}`;
-  const stamp = document.getElementById('briefingStamp');
-  stamp.textContent = `Lead ${classe}`;
-  stamp.className = 'stamp ' + (classe === 'quente' ? 'quente' : classe === 'frio' ? 'frio' : 'morno');
-  document.getElementById('briefingQuemE').textContent = data.quem_e || '';
-  document.getElementById('briefingObjetivo').textContent = data.objetivo_atual || '';
-  const doresList = document.getElementById('briefingDores');
-  doresList.innerHTML = '';
-  (data.dores_necessidades || []).forEach(d => doresList.appendChild(el('li', null, escapeHtml(d))));
-  const orcList = document.getElementById('briefingOrcamento');
-  orcList.innerHTML = '';
-  (data.orcamento || []).forEach(o => orcList.appendChild(el('li', null, escapeHtml(o))));
-  document.getElementById('briefingJustificativa').textContent =
-    `Lead ${classe}. ${data.justificativa_classificacao || ''}`;
-  briefingOutputWrap.style.display = '';
-}
-
-function briefingToPlainText(data, nome){
-  const dores = (data.dores_necessidades || []).map(d => `- ${d}`).join('\n');
-  const orcamento = (data.orcamento || []).map(o => `- ${o}`).join('\n');
-  const classe = (data.classificacao || '').trim();
-  return `🔵 RELATÓRIO — PERFIL ${nome.toUpperCase()}
-
-📌 Quem é
-${data.quem_e || ''}
-
----
-
-🎯 Objetivo Atual
-${data.objetivo_atual || ''}
-
----
-
-🤝 Dores / Necessidades
-${dores}
-
----
-
-💰 Orçamento Disponível
-${orcamento}
-
----
-
-⭐ Classificação do Lead
-Lead ${classe}. ${data.justificativa_classificacao || ''}`;
-}
-
 briefingGenerateBtn.addEventListener('click', async () => {
   briefingError.style.display = 'none';
-  const apiKey = getBriefingApiKey();
   const nome = briefingNome.value.trim();
   const notas = briefingNotas.value.trim();
 
-  if(!apiKey){
-    briefingError.textContent = 'Salve sua chave de API da Anthropic acima antes de gerar.';
-    briefingError.style.display = '';
-    return;
-  }
   if(!nome || !notas){
     briefingError.textContent = 'Preenche o nome e as anotações do lead antes de gerar.';
     briefingError.style.display = '';
     return;
   }
 
-  briefingGenerateBtn.disabled = true;
-  briefingGenerateBtn.textContent = 'Gerando…';
+  lastBriefingPrompt = `${BRIEFING_INSTRUCTIONS}\n\n---\n\nNome do lead: ${nome}\n\nAnotações:\n${notas}`;
+
+  // Abre a aba nova primeiro (síncrono, ainda dentro do clique do usuário) —
+  // se disparar depois do await do clipboard, o bloqueador de pop-up do
+  // navegador pode barrar.
+  window.open('https://claude.ai/new', '_blank', 'noopener');
+
+  let copiedAutomatically = true;
   try{
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: BRIEFING_MODEL,
-        max_tokens: 1000,
-        system: BRIEFING_SYSTEM_PROMPT,
-        messages: [
-          { role: 'user', content: `Nome do lead: ${nome}\n\nAnotações:\n${notas}` },
-        ],
-      }),
-    });
-    const data = await res.json();
-    if(!res.ok){
-      throw new Error(
-        res.status === 401
-          ? 'Chave de API inválida — confira o valor salvo (Trocar, acima).'
-          : (data.error && data.error.message) || `Erro ${res.status} ao chamar a API.`
-      );
-    }
-    const text = (data.content || []).map(b => b.text || '').join('\n');
-    const clean = text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
-    lastReportText = briefingToPlainText(parsed, nome);
-    renderBriefingReport(parsed, nome);
+    await navigator.clipboard.writeText(lastBriefingPrompt);
   }catch(err){
-    briefingError.textContent = err.message || 'Erro ao gerar o briefing. Tente novamente.';
-    briefingError.style.display = '';
-  }finally{
-    briefingGenerateBtn.disabled = false;
-    briefingGenerateBtn.textContent = 'Gerar Briefing';
+    // Alguns navegadores bloqueiam a escrita automática — a caixa abaixo
+    // com o botão "Copiar prompt" cobre esse caso.
+    copiedAutomatically = false;
   }
+
+  document.getElementById('briefingOutputTitle').textContent = copiedAutomatically
+    ? '✅ Prompt copiado e Claude aberto numa aba nova'
+    : '↗️ Claude aberto numa aba nova — copie o prompt manualmente abaixo';
+  briefingPromptPreview.textContent = lastBriefingPrompt;
+  briefingOutputWrap.style.display = '';
 });
 
-document.getElementById('briefingCopyBtn').addEventListener('click', (e) => copyText(lastReportText, e.currentTarget));
+document.getElementById('briefingCopyBtn').addEventListener('click', (e) => copyText(lastBriefingPrompt, e.currentTarget));
 document.getElementById('briefingResetBtn').addEventListener('click', resetBriefingTool);
 
 loadData();

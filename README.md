@@ -8,7 +8,7 @@ Playbook interativo de prospecção, abordagem e qualificação de leads do time
 - **Banco:** Supabase (projeto `tzn-playbook`, região São Paulo)
 - **Deploy:** Vercel (via Git — todo push na branch principal republica o site)
 
-Sem backend, sem `package.json`, sem env vars pra configurar — é só HTML estático do início ao fim, incluindo o Criador de Briefing (ver abaixo).
+Sem backend, sem `package.json`, sem env vars pra configurar, sem chave de API nenhuma — é só HTML estático do início ao fim, incluindo o Criador de Briefing (ver abaixo).
 
 ## Estrutura do banco (Supabase)
 
@@ -21,29 +21,25 @@ Sem backend, sem `package.json`, sem env vars pra configurar — é só HTML est
 
 Adicionar módulo/categoria/card pelo próprio site já grava nessas tabelas — não precisa mexer no banco manualmente.
 
-## Criador de Briefing (IA)
+## Criador de Briefing
 
-Ferramenta separada dos módulos do playbook (botão "📋 Criador de Briefing" na barra lateral). O SDR cola o nome do lead e as anotações da qualificação (texto corrido, transcrição de call, print da conversa colado como texto) e a IA devolve um relatório estruturado — quem é, objetivo, dores, orçamento e classificação (quente/morno/frio, com justificativa).
+Ferramenta separada dos módulos do playbook (botão "📋 Criador de Briefing" na barra lateral). O SDR preenche nome e anotações do lead (texto corrido, transcrição de call, print da conversa colado como texto), clica em **Gerar no Claude**, e o site:
 
-**Arquitetura — 100% client-side, sem servidor:**
+1. Monta um prompt pronto (instruções de formatação + as anotações preenchidas)
+2. Copia esse prompt pra área de transferência
+3. Abre uma aba nova em `claude.ai/new`
 
-- A chamada à API da Anthropic (`https://api.anthropic.com/v1/messages`, modelo `claude-sonnet-5`) é feita **direto do navegador de cada SDR**, com a própria chave de API dele.
-- A chave é salva só no `localStorage` daquele navegador (chave `tzn_briefing_anthropic_key`) — nunca passa pelo nosso servidor, nunca é vista por ninguém além da pessoa que a colou ali.
-- Cada SDR paga o próprio uso na própria conta Anthropic. Não existe custo centralizado nem chave compartilhada.
-- Isso é suportado oficialmente pela Anthropic via a opção `dangerouslyAllowBrowser` do SDK (equivalente ao header `anthropic-dangerous-direct-browser-access: true` usado aqui) — a própria documentação cita "ferramentas internas com usuários de confiança" como o caso de uso apropriado: [platform.claude.com/docs/.../sdks/typescript](https://platform.claude.com/docs/en/cli-sdks-libraries/sdks/typescript) (seção "Browser usage").
+O SDR só precisa colar (Ctrl+V) na conversa que abriu e apertar enviar — o Claude devolve o relatório formatado (quem é, objetivo, dores, orçamento, classificação quente/morno/frio) ali mesmo, na própria conversa.
 
-**O que cada SDR precisa fazer uma vez, no próprio navegador:**
+**Por que assim:** zero custo de infraestrutura, zero chave de API pra gerenciar, zero servidor. Cada SDR usa a própria conta do Claude (o plano gratuito já é suficiente) — o mesmo modelo de "colar num chat de IA" que o time já usava manualmente, só que o site monta o prompt e abre a conversa automaticamente.
 
-1. Abrir "📋 Criador de Briefing"
-2. Gerar uma chave em [console.anthropic.com](https://console.anthropic.com) → Settings → API Keys
-3. Adicionar algum crédito na conta (Settings → Billing) — a API é paga por uso, sem plano gratuito. O custo por briefing é bem baixo (poucos centavos com Sonnet 5)
-4. Colar a chave no campo do modal e clicar em Salvar — fica lembrada dali em diante, só precisa trocar se resetar o navegador ou revogar a chave
+**Se o navegador bloquear a cópia automática** (alguns bloqueiam escrita na área de transferência fora de certas condições), o site mostra o prompt completo numa caixa com um botão "Copiar prompt" pra copiar na mão — a aba do Claude já abre do mesmo jeito.
 
-**Consequência:** se um SDR usar de um computador diferente (ou limpar os dados do site), precisa colar a chave de novo ali. É o preço de não ter nenhum servidor/custo compartilhado no meio.
+**Dica pra quem usa bastante:** dá pra criar um Projeto no [claude.ai](https://claude.ai) (disponível no plano gratuito) com essas instruções salvas nas "instruções personalizadas" do projeto. Assim, abrindo uma conversa dentro desse projeto, não precisa nem colar as instruções de novo — só as anotações do lead a cada vez. O texto das instruções está em `BRIEFING_INSTRUCTIONS` no `index.html`.
 
 ## Rodando localmente
 
-Não precisa de servidor Node nem build — nem pro playbook, nem pro Criador de Briefing (a chamada à IA sai direto do navegador pra Anthropic, não depende de nada rodando localmente). Qualquer servidor estático serve:
+Não precisa de servidor Node nem build — nem pro playbook, nem pro Criador de Briefing. Qualquer servidor estático serve:
 
 ```bash
 python3 -m http.server 8000
@@ -66,10 +62,10 @@ python3 -m http.server 8000
 
 A escrita no banco está aberta pra qualquer pessoa com o link do site (sem login) — decisão deliberada pra manter simples enquanto é uso interno do time. Se esse link algum dia for parar em algum lugar público, qualquer um poderia editar o conteúdo. Se isso virar preocupação, dá pra adicionar login (Supabase Auth) restrito aos e-mails do time.
 
-O Criador de Briefing não adiciona esse risco de custo compartilhado — cada chave de API fica isolada no navegador de quem a colou, então não tem como uma pessoa gastar crédito da conta de outra. O único cuidado é individual: não colar a própria chave num computador compartilhado/público sem depois limpar os dados do site, e tratar a chave como uma senha (não printar, não mandar por mensagem).
+O Criador de Briefing não adiciona nenhum risco novo — ele não lê nem escreve nada no Supabase, não guarda nenhuma credencial, e a única coisa que sai do navegador é a abertura de uma aba em claude.ai (site da própria Anthropic).
 
 ## Limitações conhecidas
 
 - Não há exclusão de módulos ou categorias pela interface ainda (só de cards/scripts) — peça pra remover direto no Supabase (SQL Editor) se precisar.
 - Sem histórico de alterações — quem editar por último "vence".
-- O Criador de Briefing não guarda histórico dos relatórios gerados — é gerar e copiar, cada geração é isolada.
+- O Criador de Briefing não guarda histórico dos briefings gerados — o relatório final fica na conversa do Claude, não no playbook.
