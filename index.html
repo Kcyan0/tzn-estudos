@@ -203,18 +203,27 @@
   @media (max-width:900px){ .tool-divider{display:none;} }
 
   .modal.wide{max-width:720px;}
-  .dropzone{border:1px dashed var(--border-strong);border-radius:10px;padding:22px 14px;text-align:center;font-size:13px;color:var(--ink-dim);cursor:pointer;background:var(--bg);}
-  .dropzone.drag{border-color:var(--brand);color:var(--brand);background:var(--brand-soft);}
-  .dropzone .dz-link{color:var(--brand);text-decoration:underline;}
-  .briefing-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
-  .briefing-thumb{position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;border:1px solid var(--border);flex:none;}
-  .briefing-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-  .briefing-thumb button{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(20,16,10,0.65);color:#fff;font-size:11px;line-height:1;cursor:pointer;padding:0;}
-  .briefing-error{font-size:13px;color:var(--ember);background:var(--ember-soft);border-radius:8px;padding:9px 12px;margin-bottom:14px;}
-  .briefing-output{border-top:1px dashed var(--border);margin-top:20px;padding-top:16px;}
-  .briefing-output-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-  .briefing-output-head label{margin:0;}
-  .briefing-result{white-space:pre-wrap;font-family:var(--font-mono);font-size:13px;line-height:1.6;background:var(--surface-2);border-radius:10px;padding:16px;max-height:420px;overflow-y:auto;margin:0;}
+  .apikey-box{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:18px;}
+  .apikey-box .apikey-row{display:flex;gap:8px;}
+  .apikey-box input{flex:1;}
+  .apikey-saved{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--good-soft);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:18px;font-size:13px;color:var(--good);}
+  .apikey-saved button{font-family:var(--font-mono);font-size:11.5px;border:1px solid var(--border-strong);background:var(--surface);color:var(--ink-dim);padding:5px 10px;border-radius:7px;cursor:pointer;flex:none;}
+  .apikey-saved button:hover{color:var(--brand);border-color:var(--brand);}
+  .briefing-error{font-size:13px;color:var(--ember);background:var(--ember-soft);border-radius:8px;padding:9px 12px;margin-bottom:14px;white-space:pre-wrap;}
+  .briefing-output{border-top:1px dashed var(--border);margin-top:20px;padding-top:18px;}
+  .briefing-output-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .briefing-output-head h3{font-size:18px;}
+  .stamp{display:inline-block;border:2px solid currentColor;border-radius:7px;padding:6px 14px;font-family:var(--font-display);font-weight:700;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;transform:rotate(-3deg);margin-bottom:16px;}
+  .stamp.quente{color:var(--ember);}
+  .stamp.morno{color:var(--brand);}
+  .stamp.frio{color:var(--cool);}
+  .briefing-section{margin-bottom:16px;}
+  .briefing-section:last-child{margin-bottom:0;}
+  .briefing-section .section-eyebrow{font-family:var(--font-display);font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-dim);margin:0 0 6px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .briefing-section p, .briefing-section ul{margin:0;font-size:14px;line-height:1.6;color:var(--ink);}
+  .briefing-section ul{padding-left:18px;}
+  .briefing-section li{margin-bottom:3px;}
+  .briefing-result-actions{display:flex;gap:8px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--border);}
   .btn[disabled]{opacity:0.6;}
 </style>
 </head>
@@ -341,20 +350,31 @@
 <div class="overlay" id="briefingOverlay">
   <div class="modal wide">
     <h2>Criador de Briefing</h2>
-    <p class="sub">Solte ou cole os prints da qualificação do lead (WhatsApp, Instagram…) — a IA monta o relatório no formato padrão.</p>
+    <p class="sub">Cole as anotações do lead (texto corrido, transcrição de call, print da conversa colado como texto) — a IA monta o relatório no formato padrão. Roda direto no seu navegador, com a sua própria chave da Anthropic — nada passa pelo nosso servidor.</p>
 
-    <div class="field">
-      <label>Capturas de tela</label>
-      <div class="dropzone" id="briefingDropzone" tabindex="0">
-        <span>Arraste os prints aqui, cole com Ctrl+V ou <span class="dz-link">clique pra escolher</span></span>
-        <input type="file" id="briefingFileInput" accept="image/*" multiple hidden>
+    <div class="apikey-saved" id="apikeySaved" style="display:none;">
+      <span>🔑 Chave de API salva neste navegador</span>
+      <button type="button" id="apikeyChangeBtn">Trocar</button>
+    </div>
+    <div class="apikey-box" id="apikeyBox">
+      <div class="field">
+        <label>Sua chave de API da Anthropic</label>
+        <div class="apikey-row">
+          <input type="password" id="apikeyInput" placeholder="sk-ant-api03-…" autocomplete="off">
+          <button type="button" class="btn primary" id="apikeySaveBtn" style="flex:none;">Salvar</button>
+        </div>
+        <p class="hint">Gere a sua em <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> → Settings → API Keys. Fica salva só neste navegador (nunca é enviada pra nenhum servidor nosso) — cada SDR usa a própria chave e paga o próprio uso.</p>
       </div>
-      <div class="briefing-thumbs" id="briefingThumbs"></div>
     </div>
 
     <div class="field">
-      <label>Contexto adicional (opcional)</label>
-      <textarea id="briefingContext" placeholder="Algo que não apareceu no print? Nome do lead, observações do SDR…"></textarea>
+      <label>Nome do lead</label>
+      <input type="text" id="briefingNome" placeholder="Ex: Tiago">
+    </div>
+    <div class="field">
+      <label>Anotações sobre o lead</label>
+      <textarea id="briefingNotas" placeholder="Cole aqui qualquer informação que você tiver: quem é, o que ele busca, dores, orçamento, motivação… pode ser texto corrido, print de conversa transcrito ou resumo de call." style="min-height:160px;"></textarea>
+      <p class="hint">Quanto mais contexto, mais preciso o relatório — mas funciona mesmo com anotações soltas.</p>
     </div>
 
     <div class="briefing-error" id="briefingError" style="display:none;"></div>
@@ -366,13 +386,18 @@
 
     <div class="briefing-output" id="briefingOutputWrap" style="display:none;">
       <div class="briefing-output-head">
-        <label>Briefing gerado</label>
-        <div style="display:flex;gap:8px;">
-          <button type="button" class="copy-btn" id="briefingCopyBtn">Copiar</button>
-          <button type="button" class="add-row-btn" id="briefingResetBtn">Novo briefing</button>
-        </div>
+        <h3 id="briefingTitle"></h3>
       </div>
-      <pre class="briefing-result" id="briefingResult"></pre>
+      <div class="stamp" id="briefingStamp"></div>
+      <div class="briefing-section"><p class="section-eyebrow">📌 Quem é</p><p id="briefingQuemE"></p></div>
+      <div class="briefing-section"><p class="section-eyebrow">🎯 Objetivo Atual</p><p id="briefingObjetivo"></p></div>
+      <div class="briefing-section"><p class="section-eyebrow">🤝 Dores / Necessidades</p><ul id="briefingDores"></ul></div>
+      <div class="briefing-section"><p class="section-eyebrow">💰 Orçamento Disponível</p><ul id="briefingOrcamento"></ul></div>
+      <div class="briefing-section"><p class="section-eyebrow">⭐ Classificação do Lead</p><p id="briefingJustificativa"></p></div>
+      <div class="briefing-result-actions">
+        <button type="button" class="copy-btn" id="briefingCopyBtn">Copiar relatório</button>
+        <button type="button" class="add-row-btn" id="briefingResetBtn">Novo briefing</button>
+      </div>
     </div>
   </div>
 </div>
@@ -828,29 +853,73 @@ document.getElementById('deleteGroupBtn').addEventListener('click', async () => 
 });
 
 /* ---------- briefing tool ---------- */
-// Se algum dia vocês ativarem BRIEFING_ACCESS_CODE no Vercel (ver README),
-// preencha o mesmo valor aqui pra continuar funcionando pro time.
-const BRIEFING_ACCESS_CODE = "";
+// Chama a API da Anthropic direto do navegador, com a chave de cada SDR
+// (salva só no localStorage desse navegador — nunca passa pelo nosso
+// servidor). Suportado oficialmente pela Anthropic pra ferramentas internas
+// com usuários de confiança: platform.claude.com/docs/en/cli-sdks-libraries/sdks/typescript
+// (seção "Browser usage" / dangerouslyAllowBrowser).
+const BRIEFING_API_KEY_STORAGE = 'tzn_briefing_anthropic_key';
+const BRIEFING_MODEL = 'claude-sonnet-5';
+
+const BRIEFING_SYSTEM_PROMPT = `Você transforma anotações brutas sobre um lead comercial em um perfil estruturado para a equipe de vendas usar antes de ligar pro lead.
+
+Responda APENAS com um objeto JSON válido, sem markdown, sem crases, sem texto antes ou depois, exatamente neste formato:
+
+{
+  "quem_e": "texto corrido descrevendo histórico, experiência prévia e rotina/situação atual do lead",
+  "objetivo_atual": "texto corrido descrevendo o que o lead busca alcançar",
+  "dores_necessidades": ["dor ou necessidade 1", "dor ou necessidade 2"],
+  "orcamento": ["informação sobre capacidade de investimento", "o que isso significa pro perfil"],
+  "classificacao": "quente ou morno ou frio",
+  "justificativa_classificacao": "texto corrido explicando a classificação"
+}
+
+Para a classificação, cruze motivação demonstrada, disponibilidade de tempo, consistência do orçamento mencionado e urgência de mudança de vida ou situação. Leads com boa pontuação nesses quatro pontos são "quente"; sinais mistos são "morno"; pouca motivação, tempo ou orçamento incerto são "frio".
+
+Baseie-se apenas nas informações fornecidas. Se um dado não estiver explícito, infira com razoabilidade a partir do contexto, mas não invente números específicos que não foram mencionados.
+
+Referência de tom e nível de detalhe esperado (não copie o conteúdo, é só estilo):
+"Já estudou marketing digital e tráfego pago (inclusive curso presencial), tentou aplicar algumas estratégias, mas ainda não conseguiu resultados consistentes. Atualmente trabalha durante o dia em uma contabilidade e usa o período da noite para estudar e tentar se desenvolver no digital. Não é leigo, mas ainda não encontrou um caminho validado para executar."`;
 
 const briefingOverlay = document.getElementById('briefingOverlay');
-const briefingDropzone = document.getElementById('briefingDropzone');
-const briefingFileInput = document.getElementById('briefingFileInput');
-const briefingThumbs = document.getElementById('briefingThumbs');
-const briefingContext = document.getElementById('briefingContext');
+const apikeyBox = document.getElementById('apikeyBox');
+const apikeySaved = document.getElementById('apikeySaved');
+const apikeyInput = document.getElementById('apikeyInput');
+const briefingNome = document.getElementById('briefingNome');
+const briefingNotas = document.getElementById('briefingNotas');
 const briefingError = document.getElementById('briefingError');
 const briefingGenerateBtn = document.getElementById('briefingGenerateBtn');
 const briefingOutputWrap = document.getElementById('briefingOutputWrap');
-const briefingResult = document.getElementById('briefingResult');
-let briefingImages = []; // { media_type, data (base64 sem prefixo), previewUrl }
+let lastReportText = '';
+
+function getBriefingApiKey(){ return localStorage.getItem(BRIEFING_API_KEY_STORAGE) || ''; }
+function setBriefingApiKey(key){ localStorage.setItem(BRIEFING_API_KEY_STORAGE, key); }
+function clearBriefingApiKey(){ localStorage.removeItem(BRIEFING_API_KEY_STORAGE); }
+
+function renderApiKeyState(){
+  const hasKey = !!getBriefingApiKey();
+  apikeyBox.style.display = hasKey ? 'none' : '';
+  apikeySaved.style.display = hasKey ? '' : 'none';
+}
+document.getElementById('apikeySaveBtn').addEventListener('click', () => {
+  const key = apikeyInput.value.trim();
+  if(!key){ return; }
+  setBriefingApiKey(key);
+  apikeyInput.value = '';
+  renderApiKeyState();
+});
+document.getElementById('apikeyChangeBtn').addEventListener('click', () => {
+  clearBriefingApiKey();
+  renderApiKeyState();
+});
 
 function resetBriefingTool(){
-  briefingImages = [];
-  briefingContext.value = '';
+  briefingNome.value = '';
+  briefingNotas.value = '';
   briefingError.style.display = 'none';
   briefingOutputWrap.style.display = 'none';
-  briefingResult.textContent = '';
-  briefingFileInput.value = '';
-  renderBriefingThumbs();
+  lastReportText = '';
+  renderApiKeyState();
 }
 
 function openBriefingModal(){
@@ -863,125 +932,107 @@ document.getElementById('briefingToolBtn').addEventListener('click', openBriefin
 document.getElementById('briefingCancelBtn').addEventListener('click', closeBriefingModal);
 briefingOverlay.addEventListener('click', e => { if(e.target === briefingOverlay) closeBriefingModal(); });
 
-function renderBriefingThumbs(){
-  briefingThumbs.innerHTML = '';
-  briefingImages.forEach((img, i) => {
-    const t = el('div','briefing-thumb');
-    t.innerHTML = `<img src="${img.previewUrl}" alt=""><button type="button" title="Remover">✕</button>`;
-    t.querySelector('button').addEventListener('click', () => { briefingImages.splice(i,1); renderBriefingThumbs(); });
-    briefingThumbs.appendChild(t);
-  });
+function renderBriefingReport(data, nome){
+  const classe = (data.classificacao || '').toLowerCase().trim();
+  document.getElementById('briefingTitle').textContent = `🔵 Perfil — ${nome}`;
+  const stamp = document.getElementById('briefingStamp');
+  stamp.textContent = `Lead ${classe}`;
+  stamp.className = 'stamp ' + (classe === 'quente' ? 'quente' : classe === 'frio' ? 'frio' : 'morno');
+  document.getElementById('briefingQuemE').textContent = data.quem_e || '';
+  document.getElementById('briefingObjetivo').textContent = data.objetivo_atual || '';
+  const doresList = document.getElementById('briefingDores');
+  doresList.innerHTML = '';
+  (data.dores_necessidades || []).forEach(d => doresList.appendChild(el('li', null, escapeHtml(d))));
+  const orcList = document.getElementById('briefingOrcamento');
+  orcList.innerHTML = '';
+  (data.orcamento || []).forEach(o => orcList.appendChild(el('li', null, escapeHtml(o))));
+  document.getElementById('briefingJustificativa').textContent =
+    `Lead ${classe}. ${data.justificativa_classificacao || ''}`;
+  briefingOutputWrap.style.display = '';
 }
 
-// A Vercel limita o corpo da função serverless a ~4.5MB no total, então
-// cada print é redimensionado e recomprimido pro navegador antes de subir —
-// assim dá pra colar várias telas de uma conversa sem estourar o limite.
-const BRIEFING_MAX_IMAGES = 8;
-const BRIEFING_MAX_TOTAL_CHARS = 3.8 * 1024 * 1024; // espelha o limite do servidor
-const BRIEFING_MAX_DIMENSION = 1400; // px no maior lado
+function briefingToPlainText(data, nome){
+  const dores = (data.dores_necessidades || []).map(d => `- ${d}`).join('\n');
+  const orcamento = (data.orcamento || []).map(o => `- ${o}`).join('\n');
+  const classe = (data.classificacao || '').trim();
+  return `🔵 RELATÓRIO — PERFIL ${nome.toUpperCase()}
 
-function compressImageFile(file){
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, BRIEFING_MAX_DIMENSION / Math.max(img.width, img.height));
-        const width = Math.round(img.width * scale);
-        const height = Math.round(img.height * scale);
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
-        resolve({ media_type: 'image/jpeg', data: dataUrl.split(',')[1], previewUrl: dataUrl });
-      };
-      img.onerror = () => reject(new Error('Não foi possível ler uma das imagens.'));
-      img.src = reader.result;
-    };
-    reader.onerror = () => reject(new Error('Não foi possível ler um dos arquivos.'));
-    reader.readAsDataURL(file);
-  });
+📌 Quem é
+${data.quem_e || ''}
+
+---
+
+🎯 Objetivo Atual
+${data.objetivo_atual || ''}
+
+---
+
+🤝 Dores / Necessidades
+${dores}
+
+---
+
+💰 Orçamento Disponível
+${orcamento}
+
+---
+
+⭐ Classificação do Lead
+Lead ${classe}. ${data.justificativa_classificacao || ''}`;
 }
-
-async function addBriefingFiles(files){
-  const imageFiles = [...files].filter(f => f.type && f.type.startsWith('image/'));
-  if(!imageFiles.length) return;
-  briefingError.style.display = 'none';
-
-  const room = Math.max(0, BRIEFING_MAX_IMAGES - briefingImages.length);
-  if(imageFiles.length > room){
-    briefingError.textContent = `Máximo de ${BRIEFING_MAX_IMAGES} prints por geração — só os ${room || 0} primeiros foram adicionados.`;
-    briefingError.style.display = '';
-  }
-
-  for(const file of imageFiles.slice(0, room)){
-    try{
-      briefingImages.push(await compressImageFile(file));
-      renderBriefingThumbs();
-    }catch(err){
-      briefingError.textContent = err.message || 'Erro ao processar uma das imagens.';
-      briefingError.style.display = '';
-    }
-  }
-
-  const totalChars = briefingImages.reduce((sum, i) => sum + i.data.length, 0);
-  if(totalChars > BRIEFING_MAX_TOTAL_CHARS){
-    briefingError.textContent = 'Os prints somados ainda ficaram grandes demais — remova algum antes de gerar.';
-    briefingError.style.display = '';
-  }
-}
-
-briefingDropzone.addEventListener('click', () => briefingFileInput.click());
-briefingDropzone.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); briefingFileInput.click(); } });
-briefingFileInput.addEventListener('change', e => addBriefingFiles(e.target.files));
-['dragover','dragenter'].forEach(evt => briefingDropzone.addEventListener(evt, e => { e.preventDefault(); briefingDropzone.classList.add('drag'); }));
-['dragleave','drop'].forEach(evt => briefingDropzone.addEventListener(evt, e => { e.preventDefault(); briefingDropzone.classList.remove('drag'); }));
-briefingDropzone.addEventListener('drop', e => addBriefingFiles(e.dataTransfer.files));
-briefingOverlay.addEventListener('paste', e => {
-  const items = [...(e.clipboardData?.items || [])].filter(it => it.type.startsWith('image/'));
-  if(items.length){ addBriefingFiles(items.map(it => it.getAsFile())); }
-});
 
 briefingGenerateBtn.addEventListener('click', async () => {
   briefingError.style.display = 'none';
-  if(briefingImages.length === 0){
-    briefingError.textContent = 'Adicione pelo menos um print da conversa.';
+  const apiKey = getBriefingApiKey();
+  const nome = briefingNome.value.trim();
+  const notas = briefingNotas.value.trim();
+
+  if(!apiKey){
+    briefingError.textContent = 'Salve sua chave de API da Anthropic acima antes de gerar.';
     briefingError.style.display = '';
     return;
   }
-  const totalChars = briefingImages.reduce((sum, i) => sum + i.data.length, 0);
-  if(totalChars > BRIEFING_MAX_TOTAL_CHARS){
-    briefingError.textContent = 'Os prints somados ainda ficaram grandes demais — remova algum antes de gerar.';
+  if(!nome || !notas){
+    briefingError.textContent = 'Preenche o nome e as anotações do lead antes de gerar.';
     briefingError.style.display = '';
     return;
   }
+
   briefingGenerateBtn.disabled = true;
   briefingGenerateBtn.textContent = 'Gerando…';
   try{
-    const headers = { 'Content-Type': 'application/json' };
-    if(BRIEFING_ACCESS_CODE) headers['X-Briefing-Code'] = BRIEFING_ACCESS_CODE;
-    const res = await fetch('/api/generate-briefing', {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
       body: JSON.stringify({
-        images: briefingImages.map(i => ({ media_type: i.media_type, data: i.data })),
-        context: briefingContext.value.trim(),
+        model: BRIEFING_MODEL,
+        max_tokens: 1000,
+        system: BRIEFING_SYSTEM_PROMPT,
+        messages: [
+          { role: 'user', content: `Nome do lead: ${nome}\n\nAnotações:\n${notas}` },
+        ],
       }),
     });
-    let payload;
-    try{ payload = await res.json(); }
-    catch{
+    const data = await res.json();
+    if(!res.ok){
       throw new Error(
-        res.status === 413
-          ? 'Os prints somados ficaram grandes demais pro servidor aceitar — remova algum e tente de novo.'
-          : 'O servidor não respondeu corretamente. Confira se a função /api/generate-briefing está publicada.'
+        res.status === 401
+          ? 'Chave de API inválida — confira o valor salvo (Trocar, acima).'
+          : (data.error && data.error.message) || `Erro ${res.status} ao chamar a API.`
       );
     }
-    if(!res.ok) throw new Error(payload.error || 'Erro ao gerar o briefing.');
-    briefingResult.textContent = payload.briefing;
-    briefingOutputWrap.style.display = '';
+    const text = (data.content || []).map(b => b.text || '').join('\n');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    lastReportText = briefingToPlainText(parsed, nome);
+    renderBriefingReport(parsed, nome);
   }catch(err){
-    briefingError.textContent = err.message || 'Erro ao gerar o briefing.';
+    briefingError.textContent = err.message || 'Erro ao gerar o briefing. Tente novamente.';
     briefingError.style.display = '';
   }finally{
     briefingGenerateBtn.disabled = false;
@@ -989,7 +1040,7 @@ briefingGenerateBtn.addEventListener('click', async () => {
   }
 });
 
-document.getElementById('briefingCopyBtn').addEventListener('click', (e) => copyText(briefingResult.textContent, e.currentTarget));
+document.getElementById('briefingCopyBtn').addEventListener('click', (e) => copyText(lastReportText, e.currentTarget));
 document.getElementById('briefingResetBtn').addEventListener('click', resetBriefingTool);
 
 loadData();

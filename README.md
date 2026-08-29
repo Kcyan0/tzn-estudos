@@ -6,8 +6,9 @@ Playbook interativo de prospecção, abordagem e qualificação de leads do time
 
 - **Frontend:** HTML/CSS/JS puro (nenhuma dependência de build)
 - **Banco:** Supabase (projeto `tzn-playbook`, região São Paulo)
-- **IA (Criador de Briefing):** função serverless em `api/generate-briefing.js`, usa o SDK `@anthropic-ai/sdk` (única dependência do `package.json`) e a API da Anthropic — ver seção própria abaixo
-- **Deploy:** Vercel (via Git — todo push na branch principal republica o site e a função)
+- **Deploy:** Vercel (via Git — todo push na branch principal republica o site)
+
+Sem backend, sem `package.json`, sem env vars pra configurar — é só HTML estático do início ao fim, incluindo o Criador de Briefing (ver abaixo).
 
 ## Estrutura do banco (Supabase)
 
@@ -22,28 +23,27 @@ Adicionar módulo/categoria/card pelo próprio site já grava nessas tabelas —
 
 ## Criador de Briefing (IA)
 
-Ferramenta separada dos módulos do playbook (botão "📋 Criador de Briefing" na barra lateral). O SDR sobe (ou cola com Ctrl+V) os prints da qualificação do lead, opcionalmente adiciona contexto, e a IA devolve o relatório pronto no formato padrão do time — só gera e copia, não fica salvo em lugar nenhum.
+Ferramenta separada dos módulos do playbook (botão "📋 Criador de Briefing" na barra lateral). O SDR cola o nome do lead e as anotações da qualificação (texto corrido, transcrição de call, print da conversa colado como texto) e a IA devolve um relatório estruturado — quem é, objetivo, dores, orçamento e classificação (quente/morno/frio, com justificativa).
 
-- **Frontend:** `index.html` (mesma página, sem dependências novas).
-- **Backend:** `api/generate-briefing.js`, uma função serverless da Vercel que chama a API da Anthropic (modelo `claude-sonnet-5` — bom custo/benefício pra essa tarefa) com as imagens. Existe só pra manter a chave da API fora do navegador — o `index.html` nunca vê essa chave.
+**Arquitetura — 100% client-side, sem servidor:**
 
-**Configuração necessária no Vercel** (Settings → Environment Variables do projeto):
+- A chamada à API da Anthropic (`https://api.anthropic.com/v1/messages`, modelo `claude-sonnet-5`) é feita **direto do navegador de cada SDR**, com a própria chave de API dele.
+- A chave é salva só no `localStorage` daquele navegador (chave `tzn_briefing_anthropic_key`) — nunca passa pelo nosso servidor, nunca é vista por ninguém além da pessoa que a colou ali.
+- Cada SDR paga o próprio uso na própria conta Anthropic. Não existe custo centralizado nem chave compartilhada.
+- Isso é suportado oficialmente pela Anthropic via a opção `dangerouslyAllowBrowser` do SDK (equivalente ao header `anthropic-dangerous-direct-browser-access: true` usado aqui) — a própria documentação cita "ferramentas internas com usuários de confiança" como o caso de uso apropriado: [platform.claude.com/docs/.../sdks/typescript](https://platform.claude.com/docs/en/cli-sdks-libraries/sdks/typescript) (seção "Browser usage").
 
-| Variável | Obrigatória? | O que faz |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | Sim | Chave da API da Anthropic. **Gere em console.anthropic.com → Settings → API Keys** (uma chave normal, presa a um workspace) — não use um token pessoal de login (`ant auth login`/OAuth), que é "identity-linked" e exige a variável extra abaixo. |
-| `ANTHROPIC_WORKSPACE_ID` | Só se a chave acima for identity-linked | Some com o erro `anthropic-workspace-id is required...`? É porque a chave usada foi um token de login pessoal em vez de uma API Key comum. O jeito mais simples é trocar por uma API Key gerada no Console (aí essa variável nem precisa existir); se preferir manter a chave atual, defina aqui o ID do workspace (`wrkspc_...`, visível no Console). |
-| `BRIEFING_ACCESS_CODE` | Não | Se definida, a função só aceita pedidos que enviem esse mesmo código (o time precisaria colocar o valor na constante `BRIEFING_ACCESS_CODE` no `index.html` e republicar). Serve pra reduzir o risco de alguém fora do time gastar crédito da API caso o link do site vaze — ver seção "Segurança" abaixo. |
+**O que cada SDR precisa fazer uma vez, no próprio navegador:**
 
-Sem `ANTHROPIC_API_KEY` configurada, o botão aparece normalmente mas gerar um briefing retorna erro.
+1. Abrir "📋 Criador de Briefing"
+2. Gerar uma chave em [console.anthropic.com](https://console.anthropic.com) → Settings → API Keys
+3. Adicionar algum crédito na conta (Settings → Billing) — a API é paga por uso, sem plano gratuito. O custo por briefing é bem baixo (poucos centavos com Sonnet 5)
+4. Colar a chave no campo do modal e clicar em Salvar — fica lembrada dali em diante, só precisa trocar se resetar o navegador ou revogar a chave
 
-**Limites:** até 8 prints por geração. O navegador redimensiona e recomprime cada print antes de enviar (a Vercel limita o corpo de uma função serverless a ~4.5MB no total), então isso raramente é um problema na prática — só entra em jogo se os prints somados ainda ficarem grandes demais depois de comprimidos.
-
-**Rodando a função localmente:** `python3 -m http.server` (abaixo) serve o `index.html`, mas não executa funções serverless — pra testar o gerador de briefing de ponta a ponta em máquina local é preciso `vercel dev` (`npm i -g vercel`, depois `vercel dev` na raiz do projeto, com `ANTHROPIC_API_KEY` no `.env.local`).
+**Consequência:** se um SDR usar de um computador diferente (ou limpar os dados do site), precisa colar a chave de novo ali. É o preço de não ter nenhum servidor/custo compartilhado no meio.
 
 ## Rodando localmente
 
-Não precisa de servidor Node nem build pra navegar o playbook (o Criador de Briefing depende da função serverless — ver seção acima). Qualquer servidor estático serve:
+Não precisa de servidor Node nem build — nem pro playbook, nem pro Criador de Briefing (a chamada à IA sai direto do navegador pra Anthropic, não depende de nada rodando localmente). Qualquer servidor estático serve:
 
 ```bash
 python3 -m http.server 8000
@@ -59,16 +59,17 @@ python3 -m http.server 8000
    git push -u origin main
    ```
 2. Em [vercel.com/new](https://vercel.com/new), clique em **Import Git Repository** e selecione esse repositório.
-3. Nenhuma configuração de build é necessária — a Vercel detecta o `package.json` (só pra instalar a dependência da função `/api`) e serve o resto como estático. Antes de clicar em **Deploy**, adicione a env var `ANTHROPIC_API_KEY` (Settings → Environment Variables) — sem ela o site funciona normalmente, só o Criador de Briefing fica indisponível.
-4. A partir daqui, todo `git push` na branch `main` republica o site e a função automaticamente.
+3. Nenhuma configuração de build é necessária — é HTML estático, sem env vars. Clique em **Deploy**.
+4. A partir daqui, todo `git push` na branch `main` republica o site automaticamente.
 
 ## Segurança (leia antes de compartilhar o link)
 
 A escrita no banco está aberta pra qualquer pessoa com o link do site (sem login) — decisão deliberada pra manter simples enquanto é uso interno do time. Se esse link algum dia for parar em algum lugar público, qualquer um poderia editar o conteúdo. Se isso virar preocupação, dá pra adicionar login (Supabase Auth) restrito aos e-mails do time.
 
-O mesmo vale (com um agravante) pro **Criador de Briefing**: qualquer um com o link pode gerar briefings, e cada geração consome crédito pago da API da Anthropic — diferente de mexer no Supabase, aqui tem custo direto em dinheiro por uso. Se o link do site sair do controle do time, configure `BRIEFING_ACCESS_CODE` (ver seção do Criador de Briefing) pra travar o endpoint atrás de um código simples, ou considere Supabase Auth se precisar de algo mais sério.
+O Criador de Briefing não adiciona esse risco de custo compartilhado — cada chave de API fica isolada no navegador de quem a colou, então não tem como uma pessoa gastar crédito da conta de outra. O único cuidado é individual: não colar a própria chave num computador compartilhado/público sem depois limpar os dados do site, e tratar a chave como uma senha (não printar, não mandar por mensagem).
 
 ## Limitações conhecidas
 
 - Não há exclusão de módulos ou categorias pela interface ainda (só de cards/scripts) — peça pra remover direto no Supabase (SQL Editor) se precisar.
 - Sem histórico de alterações — quem editar por último "vence".
+- O Criador de Briefing não guarda histórico dos relatórios gerados — é gerar e copiar, cada geração é isolada.
